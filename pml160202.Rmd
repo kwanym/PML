@@ -5,6 +5,9 @@ date: "29 January 2016"
 output: html_document
 ---
 
+Link to the Github repo is here:
+[link] (https://github.com/kwanym/PML)
+
 
 ## Executive Summary
 
