@@ -1,0 +1,100 @@
+---
+title: "PML Project"
+author: "kwan"
+date: "29 January 2016"
+output: html_document
+---
+
+
+## Executive Summary
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+
+This project seeks to train and apply a predictive model to the dataset so that we can predict whether the moevements are done correctly for a separate problem data set provided. I tried out two models (KNN and RandomForest) and found that the random forest model was able fit well with the training sample data.
+
+
+## Load Packages and Data
+
+First we clear the workspace and load the related packages. Afterwhich we load the training data and the problem dataset with 20 cases or problems which we need to apply the model on to predict the results. 
+
+```{r}
+# clear objects from workspace
+rm(list = ls())
+
+# load packages
+suppressMessages(library("caret"))
+suppressMessages(library("randomForest"))
+
+# read data
+data.train <- read.csv("./data/pml-training.csv", sep = ",", na.strings = c("", "NA"), header = T, stringsAsFactors = T)
+data.prob <- read.csv("./data/pml-testing.csv", sep = ",", na.strings = c("", "NA"), header = T, stringsAsFactors = T)
+
+```
+
+
+## Data Cleaning and Preparation
+
+After loading the data, I examined the data to get a sense of what values are present. I realised that there were many columns with no data or NA. Hence I decided to remove the columns where every rows are NAs.  In addition, because the problem dataset has no time-dependence, these values are useless and can be ignored. Hence I also remove the first 7 features since they are related to the time-series or are not numeric data.
+
+```{r}
+# Remove columns full of NAs.
+features <- names(data.prob[,colSums(is.na(data.prob)) == 0])[8:59]
+# Only use features used in submit cases.
+data.train <- data.train[,c(features,"classe")]
+data.prob <- data.prob[,c(features,"problem_id")]
+
+```
+
+
+## Partition the data
+
+30% of training data is set aside for testing after the final model has been constructed using the training set of data. 
+
+```{r}
+set.seed(8888)
+inTrain <- createDataPartition(y = data.train$classe, p = 0.7, list = F)
+train.set <- data.train[inTrain, ]
+test.set <- data.train[-inTrain, ]
+
+```
+
+
+## Model Building
+
+I tried to use RandomForest to see if I can get an acceptable level of accuracy.
+
+```{r}
+ctrlRF <- trainControl(method = "oob")
+modelRF <- train(classe ~ ., train.set, method = "rf", trControl = ctrlRF)
+resultsRF <- data.frame(modelRF$results)
+modelRF$finalModel
+
+```
+
+I see that model used 500 trees and tried 27 variables at each split.
+
+
+## Evaluation of RandomForest Model
+
+Now, I use the fitted model to predict the label ("classe") in test.set data. I will also work out the confusion matrix to compare the predicted versus the actual labels.
+
+```{r}
+testpredict <- predict(modelRF, newdata=test.set)
+confusionMatrix(test.set$classe, testpredict)
+
+```
+
+The accuracy is 99.46%. I am very happy and satisfied with the result. I will use RandomForests to predict the outcomes on the problem data set for eventual submission.
+
+
+# Making Predictions on the Problem Data Set
+```{r}
+fitRF <- predict(modelRF, data.prob)
+fitRF
+
+```
+
+
+
+
+
